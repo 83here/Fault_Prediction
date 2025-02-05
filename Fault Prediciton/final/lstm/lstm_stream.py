@@ -1,30 +1,25 @@
-# server_mse_stream.py
 import numpy as np
 import torch
 from collections import deque
 import time
 from flask import Flask, jsonify
 import threading
-from lstm_load import load_model  # Import the load_model function from lstm_model.py
-# lstm_model.py
+from lstm_load import load_model  
 import torch
 import torch.nn as nn
 
-# Initialize Flask app
 app = Flask(__name__)
-latest_mse = None  # Global variable to store the latest MSE value
-latest_prediction = None  # Global variable to store the latest prediction
-latest_target = None  # Global variable to store the latest actual target
+latest_mse = None  
+latest_prediction = None  
+latest_target = None  
 
-# Initialize model and load the trained weights
-model = load_model('/Users/prasanna/Desktop/Hack2Future/file/lstm_model.pth')  # Load your trained model here
+model = load_model('/Users/prasanna/Desktop/Fault_Prediction/Fault Prediciton/final/lstm/lstm_model.pth')  
 criterion = nn.MSELoss()
 threshold = 0.25
 input_length = 80
 output_length = 20
 streaming_data_buffer = deque(maxlen=input_length + output_length)
 
-# Generate synthetic vibrational data
 def get_live_vibration_data(time_steps=100, noise_level=0.1, fault=False):
     t = np.linspace(0, 10, time_steps)
     frequency = 0.5
@@ -48,7 +43,6 @@ def get_mse():
         'target': latest_target.tolist() if latest_target is not None else None
     })
 
-# Background thread to run live anomaly detection
 def run_anomaly_detection():
     global latest_mse, latest_prediction, latest_target
     while True:
@@ -61,7 +55,6 @@ def run_anomaly_detection():
                 target = torch.tensor([list(streaming_data_buffer)[input_length:]], dtype=torch.float32).reshape(1, -1)
                 mse = criterion(prediction, target).item()
 
-                # Store the latest prediction and target
                 latest_prediction = prediction.numpy()
                 latest_target = target.numpy()
 
@@ -73,7 +66,6 @@ def run_anomaly_detection():
                 streaming_data_buffer.popleft()
         time.sleep(1)
 
-# Start the background anomaly detection thread
 anomaly_thread = threading.Thread(target=run_anomaly_detection)
 anomaly_thread.start()
 
